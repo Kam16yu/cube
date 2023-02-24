@@ -1,133 +1,96 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
-/// Camera example home widget.
-class CubePage extends StatefulWidget {
-  /// Default Constructor
-  const CubePage({Key? key}) : super(key: key);
+class Cube extends StatefulWidget {
+
+  const Cube({super.key});
 
   @override
-  State<CubePage> createState() {
-    return _CubePageState();
-  }
+  State<Cube> createState() => _CubeState();
 }
 
-class _CubePageState extends State<CubePage>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _animationController;
-  late Animation<double> _animation;
+class _CubeState extends State<Cube> with SingleTickerProviderStateMixin {
+  AnimationController? _controller;
+  Animation<double>? _animation;
 
   @override
   void initState() {
     super.initState();
-    _animationController = AnimationController(
-      duration: const Duration(seconds: 3),
-      vsync: this,
-    )..repeat();
-    _animation = Tween<double>(begin: 0, end: 360).animate(_animationController)
-      ..addListener(() {
-        setState(() {});
-      });
-  }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Animated Cube'),
-      ),
-      body: Center(
-        child: AnimatedBuilder(
-          animation: _animation,
-          builder: (context, child) {
-            return Transform(
-              transform: Matrix4.identity()
-                ..setEntry(3, 2, 0.002)
-                ..rotateX(_animation.value * 0.0174533)
-                ..rotateY(_animation.value * 0.0174533),
-              alignment: FractionalOffset.center,
-              child: Container(
-                height: 200,
-                width: 200,
-                child: Stack(
-                  children: [
-                    CubeFace(
-                        color: Colors.blue, rotation: Quaternion(0, 0, 0, 1)),
-                    CubeFace(
-                        color: Colors.red, rotation: Quaternion(1, 0, 0, 1)),
-                    CubeFace(
-                        color: Colors.green, rotation: Quaternion(0, 1, 0, 1)),
-                    CubeFace(
-                        color: Colors.yellow, rotation: Quaternion(0, 0, 1, 1)),
-                    CubeFace(
-                        color: Colors.purple,
-                        rotation: Quaternion(0, 0, 1, -1)),
-                    CubeFace(
-                        color: Colors.orange,
-                        rotation: Quaternion(0, 1, 0, -1)),
-                  ],
-                ),
-              ),
-            );
-          },
-        ),
-      ),
-    );
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 5),
+    )..repeat();
+
+    _animation = Tween<double>(
+      begin: 0,
+      end: math.pi * 2,
+    ).animate(_controller!);
   }
 
   @override
   void dispose() {
-    _animationController.dispose();
+    _controller!.dispose();
     super.dispose();
   }
-}
-
-class CubeFace extends StatelessWidget {
-  final Color color;
-  final Quaternion rotation;
-
-  const CubeFace({Key? key, required this.color, required this.rotation})
-      : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return Transform(
-      transform: rotation.toMatrix(),
-      child: Container(
-        height: 100,
-        width: 100,
-        decoration: BoxDecoration(
-          color: color,
-          borderRadius: BorderRadius.circular(20),
-        ),
-      ),
+    return AnimatedBuilder(
+      animation: _animation!,
+      builder: (BuildContext context, Widget? child) {
+        final matrix = _calculateMatrix(_animation!.value);
+        return Transform(
+          transform: matrix,
+          alignment: Alignment.center,
+          child: Stack(
+            children: [
+              _side(Colors.red, [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]),
+              _side(Colors.green, [0.0, 100.0, 100.0],[90.0, 0.0, 0.0]),
+              _side(Colors.blue, [100.0, 0.0, 100.0], [0.0, 90.0, 0.0]),
+              _side(Colors.yellow, [-100.0, 0.0, 100.0], [0.0, 90.0, 0.0]),
+              _side(Colors.purple, [0.0, 0.0, 200.0], [0.0, 0.0, 0.0]),
+              _side(Colors.orange, [0.0, -100.0, 100.0], [90.0, 0.0, 0.0]),
+            ],
+          ),
+        );
+      },
     );
   }
-}
 
-class Quaternion {
-  final double x;
-  final double y;
-  final double z;
-  final double w;
-
-  const Quaternion(this.x, this.y, this.z, this.w);
-
-  Matrix4 toMatrix() {
-    final double xx = x * x;
-    final double xy = x * y;
-    final double xz = x * z;
-    final double xw = x * w;
-    final double yy = y * y;
-    final double yz = y * z;
-    final double yw = y * w;
-    final double zz = z * z;
-    final double zw = z * w;
-
-    return Matrix4(
-      1 - 1 * (yy + zz), 1 * (xy - zw), 1 * (xz + yw), 0,
-      1 * (xy + zw), 1 - 1 * (xx + zz), 1 * (yz - xw), 0,
-      1 * (xz - yw), 1 * (yz + xw), 1 - 1 * (xx + yy), 0,
-      0, 0, 0, 1,
+  Widget _side(Color color, List degree, List rotate) {
+    const sideSize = 200.0;
+    final side = Container(
+      width: sideSize,
+      height: sideSize,
+      color: color,
     );
+
+    final poligonTransform = Matrix4.identity()
+      ..translate(degree[0], degree[1],degree[2])
+      ..rotateX(radians(rotate[0]))
+      ..rotateY(radians(rotate[1]))
+      ..rotateZ(radians(rotate[2]));
+
+    return Transform(
+      transform: poligonTransform,
+      alignment: Alignment.center,
+      child: side,
+    );
+  }
+
+  double radians(double degrees) {
+    const rad = 0.017453292519943;
+    return degrees*rad;
+  }
+
+  Matrix4 _calculateMatrix(double value) {
+    final rotationX = Matrix4.rotationX(value);
+    final rotationY = Matrix4.rotationY(value);
+    final perspective = Matrix4.identity()
+      ..setEntry(3, 2, 0.0)
+      ..setEntry(3, 3, 1.0);
+    final view = Matrix4.translationValues(0, 0, -4);
+    return perspective * view * rotationX * rotationY;
   }
 }
