@@ -24,7 +24,7 @@ class _CubeState extends State<Cube> with SingleTickerProviderStateMixin {
 
     _animation = Tween<double>(
       begin: 0,
-      end: math.pi * 2,
+      end: math.pi*2,
     ).animate(_controller!);
   }
 
@@ -88,8 +88,7 @@ class _CubeState extends State<Cube> with SingleTickerProviderStateMixin {
     final rotationX = Matrix4.rotationX(value);
     final rotationY = Matrix4.rotationY(value);
     final perspective = Matrix4.identity()
-      ..setEntry(3, 2, 0.0)
-      ..setEntry(3, 3, 1.0);
+      ..setEntry(2, 2, -1.0);
     final view = Matrix4.translationValues(0, 0, -4);
     return perspective * view * rotationX * rotationY;
   }
